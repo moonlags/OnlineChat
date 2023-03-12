@@ -1,0 +1,9 @@
+{
+    "action":"create",
+    "object":"user",
+    "data":{
+        "name":"komputer",
+        "email":"sasha@gmail.com",
+        "password":"123456"
+    }
+}
