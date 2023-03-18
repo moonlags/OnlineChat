@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"image"
 	"io"
-	"net"
 	"net/http"
 	"time"
 )
@@ -90,7 +89,6 @@ func main() {
 	var Rooms []Room
 	client := &http.Client{}
 
-	//go ReadConnection(client, &MainUser, &Rooms)
 	sendToConnection(client, &MainUser, &Rooms)
 }
 
@@ -104,7 +102,7 @@ func sendToConnection(client *http.Client, MainUser *User, Rooms *[]Room) {
 		fmt.Scan(&s)
 		switch s {
 		case "Login":
-			if (*MainUser).Obj.ID != 0 {
+			if (*MainUser).Obj.ID != 0 || session != "" {
 				fmt.Println("Error: You already in!")
 				continue
 			}
@@ -151,7 +149,7 @@ func sendToConnection(client *http.Client, MainUser *User, Rooms *[]Room) {
 				return
 			}
 		case "Register":
-			if (*MainUser).Obj.ID != 0 {
+			if (*MainUser).Obj.ID != 0 || session != "" {
 				fmt.Println("Error: You already in!")
 				continue
 			}
@@ -200,7 +198,7 @@ func sendToConnection(client *http.Client, MainUser *User, Rooms *[]Room) {
 				return
 			}
 		case "Logout":
-			if (*MainUser).Obj.ID == 0 {
+			if (*MainUser).Obj.ID == 0 || session == "" {
 				fmt.Println("Error: You are not in!")
 				continue
 			}
@@ -239,8 +237,10 @@ func sendToConnection(client *http.Client, MainUser *User, Rooms *[]Room) {
 				continue
 			}
 			*MainUser = User{}
+			session = ""
+			*Rooms = make([]Room, 0)
 		case "CreateRoom":
-			if (*MainUser).Obj.ID == 0 {
+			if (*MainUser).Obj.ID == 0 || session == "" {
 				fmt.Println("Error: You are not in!")
 				continue
 			}
@@ -295,7 +295,7 @@ func sendToConnection(client *http.Client, MainUser *User, Rooms *[]Room) {
 				(*MainUser).Obj.Rooms[i] = v
 			}
 		case "JoinRoom":
-			if (*MainUser).Obj.ID == 0 {
+			if (*MainUser).Obj.ID == 0 || session == "" {
 				fmt.Println("Error: You are not in!")
 				continue
 			}
@@ -361,56 +361,6 @@ func sendToConnection(client *http.Client, MainUser *User, Rooms *[]Room) {
 			for i, v := range temp {
 				(*MainUser).Obj.Rooms[i] = v
 			}
-		}
-	}
-}
-
-func ReadConnection(conn net.Conn, MainUser *User, Rooms *[]Room) {
-	buf := make([]byte, 1000)
-	var data Output
-	for {
-		n, err := conn.Read(buf)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		//fmt.Println(string(buf[:n]))
-		err = json.Unmarshal(buf[:n], &data)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		//fmt.Println(data)
-		fmt.Println(string(buf[:n]))
-		if data.Success && data.Status == "" {
-			if (data.Action == "login" || data.Action == "create" || data.Action == "update") && data.Object == "user" {
-				err := json.Unmarshal(buf[:n], MainUser)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-			}
-			if data.Action == "logout" && data.Object == "user" {
-				*MainUser = User{}
-			}
-			if (data.Action == "create" || data.Action == "update") && data.Object == "room" {
-				var r Room
-				err := json.Unmarshal(buf[:n], &r)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-				(*Rooms) = append(*Rooms, r)
-				//fmt.Println(*Rooms)
-				temp := MainUser.Obj.Rooms
-				MainUser.Obj.Rooms = make(map[uint64]bool)
-				(*MainUser).Obj.Rooms[r.Obj.ID] = true
-				for i, v := range temp {
-					(*MainUser).Obj.Rooms[i] = v
-				}
-			}
-		} else {
-			fmt.Println("\nError: ", data.Status)
 		}
 	}
 }

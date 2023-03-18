@@ -91,7 +91,7 @@ func (db *DB) UseAction(text []byte, conn net.Conn, w http.ResponseWriter, req *
 		return
 	}
 	toDo.GetFromJSON(text)
-	fmt.Println(sessions)
+	//fmt.Println(sessions)
 	toDo.Process(db, conn, w, req)
 }
 
@@ -186,16 +186,26 @@ func (db *DB) UpdateRoom(action *UpdateRoom, conn net.Conn, w http.ResponseWrite
 		}
 		return
 	}
-	data.Action, data.Object, data.Success, data.Status = "update", "room", false, "Error: Room not found!"
+	data.Action, data.Object, data.Success, data.Status = "update", "room", false, "Room not found!"
 	text, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	_, err = conn.Write(text)
-	if err != nil {
-		fmt.Println(err)
-		return
+	if conn != nil {
+		_, err = conn.Write(text)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	if w != nil {
+		for i := range db.Rooms[db.FindIndexRoom(action.R.ID)].Users {
+			if sessions[req.Header.Get("ChatSessionID")].UserID == i {
+				w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+				io.WriteString(w, string(text))
+			}
+		}
 	}
 }
 func (db *DB) ReadRoom(action *ReadRoom, conn net.Conn, w http.ResponseWriter, req *http.Request) {
@@ -239,6 +249,9 @@ func (db *DB) AddUser(action *CreateUser, conn net.Conn, w http.ResponseWriter, 
 					return
 				}
 			}
+			if w != nil {
+				io.WriteString(w, string(text))
+			}
 			return
 		}
 	}
@@ -267,7 +280,6 @@ func (db *DB) AddUser(action *CreateUser, conn net.Conn, w http.ResponseWriter, 
 		sessions[i] = Session{action.U.ID, time.Now()}
 		w.Header().Set("ChatSessionID", i)
 		io.WriteString(w, string(text))
-		w.WriteHeader(http.StatusOK)
 	}
 	q := `INSERT INTO users (Attribute,Name,Email,Password,ID,Rooms) VALUES (?,?,?,?,?,?)`
 	temp := db.Users[db.FindIndexUser(action.U.ID)]
@@ -302,11 +314,23 @@ func (db *DB) LoginUser(action *LoginUser, conn net.Conn, w http.ResponseWriter,
 				fmt.Println(err)
 				return
 			}
-			_, err = conn.Write(text)
-			if err != nil {
-				fmt.Println(err)
-				return
+			if conn != nil {
+				_, err = conn.Write(text)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
 			}
+			if w != nil {
+				i := fmt.Sprint(rand.Intn(9999999999))
+				for _, ok := sessions[i]; ok; {
+					i = fmt.Sprint(rand.Intn(9999999999))
+				}
+				sessions[i] = Session{data.Obj.GetId(), time.Now()}
+				w.Header().Set("ChatSessionID", i)
+				io.WriteString(w, string(text))
+			}
+			return
 		}
 	}
 	data.Action, data.Object, data.Success, data.Status = "login", "user", false, "User not found!"
@@ -323,12 +347,6 @@ func (db *DB) LoginUser(action *LoginUser, conn net.Conn, w http.ResponseWriter,
 		}
 	}
 	if w != nil {
-		i := fmt.Sprint(rand.Intn(9999999999))
-		for _, ok := sessions[i]; !ok; {
-			i = fmt.Sprint(rand.Intn(9999999999))
-		}
-		sessions[i] = Session{data.Obj.GetId(), time.Now()}
-		w.Header().Set("ChatSessionID", i)
 		io.WriteString(w, string(text))
 	}
 }
@@ -337,16 +355,22 @@ func (db *DB) LogoutUser(action *LogoutUser, conn net.Conn, w http.ResponseWrite
 	var data Output
 	index := db.FindIndexUser(action.Data.ID)
 	if index == -1 {
-		data.Action, data.Object, data.Success, data.Status = "logout", "user", false, "Error: User Not Found, wrong ID!"
+		data.Action, data.Object, data.Success, data.Status = "logout", "user", false, "User Not Found, wrong ID!"
 		text, err := json.Marshal(data)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		_, err = conn.Write(text)
-		if err != nil {
-			fmt.Println(err)
-			return
+		if conn != nil {
+			_, err = conn.Write(text)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+		if w != nil && sessions[req.Header.Get("ChatSessionID")].UserID == action.Data.ID {
+			w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+			io.WriteString(w, string(text))
 		}
 		return
 	}
@@ -363,7 +387,9 @@ func (db *DB) LogoutUser(action *LogoutUser, conn net.Conn, w http.ResponseWrite
 			return
 		}
 	}
-	if w != nil {
+	if w != nil && sessions[req.Header.Get("ChatSessionID")].UserID == action.Data.ID {
 		delete(sessions, req.Header.Get("ChatSessionID"))
+		w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+		io.WriteString(w, string(text))
 	}
 }

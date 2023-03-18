@@ -157,6 +157,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		}
 		fmt.Println("Got Connection")
 		db.UseAction(data, nil, w, req)
+		fmt.Println(sessions)
 		fmt.Println()
 	}
 }
