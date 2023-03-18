@@ -116,7 +116,7 @@ func (action *DeleteUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, 
 }
 
 func (u User) Print() {
-	fmt.Printf("ID:%d Name:%s Attribute:%d Email:%s Password:%s Login:%t", u.ID, u.Name, u.Attribute, u.Email, u.Password)
+	fmt.Printf("ID:%d Name:%s Attribute:%d Email:%s Password:%s", u.ID, u.Name, u.Attribute, u.Email, u.Password)
 }
 func (u User) GetId() uint64 {
 	return u.ID
