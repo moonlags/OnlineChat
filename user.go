@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"net"
+	"net/http"
 )
 
 type User struct {
@@ -15,7 +16,6 @@ type User struct {
 	ID        uint64 `json:"id"`
 	Avatar    image.Image
 	Rooms     map[uint64]bool `json:"rooms"`
-	LoggedIn  bool
 }
 
 type CreateUser struct {
@@ -63,8 +63,8 @@ func (action *CreateUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *CreateUser) Process(db *DB, conn net.Conn) {
-	db.AddUser(action, conn)
+func (action *CreateUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	db.AddUser(action, conn, w, req)
 }
 
 func (u User) Update() DefinedAction {
@@ -79,8 +79,8 @@ func (action *UpdateUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *UpdateUser) Process(db *DB, conn net.Conn) {
-	db.UpdateUser(action, conn)
+func (action *UpdateUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	db.UpdateUser(action, conn, w, req)
 }
 
 func (u User) Read() DefinedAction {
@@ -95,8 +95,8 @@ func (action *ReadUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *ReadUser) Process(db *DB, conn net.Conn) {
-	db.ReadUser(action, conn)
+func (action *ReadUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	db.ReadUser(action, conn, w, req)
 }
 
 func (u User) Delete() DefinedAction {
@@ -111,12 +111,12 @@ func (action *DeleteUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *DeleteUser) Process(db *DB, conn net.Conn) {
-	db.DeleteUser(action, conn)
+func (action *DeleteUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	db.DeleteUser(action, conn, w, req)
 }
 
 func (u User) Print() {
-	fmt.Printf("ID:%d Name:%s Attribute:%d Email:%s Password:%s Login:%t", u.ID, u.Name, u.Attribute, u.Email, u.Password, u.LoggedIn)
+	fmt.Printf("ID:%d Name:%s Attribute:%d Email:%s Password:%s Login:%t", u.ID, u.Name, u.Attribute, u.Email, u.Password)
 }
 func (u User) GetId() uint64 {
 	return u.ID
@@ -134,8 +134,8 @@ func (action *LoginUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *LoginUser) Process(db *DB, conn net.Conn) {
-	db.LoginUser(action, conn)
+func (action *LoginUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	db.LoginUser(action, conn, w, req)
 }
 
 func (u User) Logout() DefinedAction {
@@ -150,6 +150,6 @@ func (action *LogoutUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *LogoutUser) Process(db *DB, conn net.Conn) {
-	db.LogoutUser(action, conn)
+func (action *LogoutUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	db.LogoutUser(action, conn, w, req)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"net"
+	"net/http"
 )
 
 type Room struct {
@@ -61,8 +62,8 @@ func (action *CreateRoom) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *CreateRoom) Process(db *DB, conn net.Conn) {
-	(*db).AddRoom(action, conn)
+func (action *CreateRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	(*db).AddRoom(action, conn, w, req)
 }
 
 func (r Room) Update() DefinedAction {
@@ -77,8 +78,8 @@ func (action *UpdateRoom) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *UpdateRoom) Process(db *DB, conn net.Conn) {
-	(*db).UpdateRoom(action, conn)
+func (action *UpdateRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	(*db).UpdateRoom(action, conn, w, req)
 }
 
 func (r Room) Read() DefinedAction {
@@ -93,8 +94,8 @@ func (action *ReadRoom) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *ReadRoom) Process(db *DB, conn net.Conn) {
-	(*db).ReadRoom(action, conn)
+func (action *ReadRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	(*db).ReadRoom(action, conn, w, req)
 }
 
 func (r Room) Delete() DefinedAction {
@@ -109,8 +110,8 @@ func (action *DeleteRoom) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *DeleteRoom) Process(db *DB, conn net.Conn) {
-	(*db).DeleteRoom(action, conn)
+func (action *DeleteRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	(*db).DeleteRoom(action, conn, w, req)
 }
 
 func (r Room) Print() {
@@ -126,11 +127,15 @@ func (r Room) Login() DefinedAction {
 
 func (action *LoginRoom) GetFromJSON(data []byte) {}
 
-func (action *LoginRoom) Process(db *DB, conn net.Conn) { fmt.Println("Room cant Login") }
+func (action *LoginRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	fmt.Println("Room cant Login")
+}
 func (r Room) Logout() DefinedAction {
 	return &LogoutRoom{}
 }
 
 func (action *LogoutRoom) GetFromJSON(data []byte) {}
 
-func (action *LogoutRoom) Process(db *DB, conn net.Conn) { fmt.Println("Room cant Logout") }
+func (action *LogoutRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	fmt.Println("Room cant Logout")
+}

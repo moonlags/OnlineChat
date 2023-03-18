@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"net"
+	"net/http"
 	"time"
 )
 
@@ -63,8 +64,8 @@ func (action *CreateMessage) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *CreateMessage) Process(db *DB, conn net.Conn) {
-	(*db).AddMessage(action, conn)
+func (action *CreateMessage) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	(*db).AddMessage(action, conn, w, req)
 }
 
 func (m Message) Update() DefinedAction {
@@ -79,8 +80,8 @@ func (action *UpdateMessage) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *UpdateMessage) Process(db *DB, conn net.Conn) {
-	(*db).UpdateMessage(action, conn)
+func (action *UpdateMessage) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	(*db).UpdateMessage(action, conn, w, req)
 }
 
 func (m Message) Read() DefinedAction {
@@ -95,8 +96,8 @@ func (action *ReadMessage) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *ReadMessage) Process(db *DB, conn net.Conn) {
-	(*db).ReadMessage(action, conn)
+func (action *ReadMessage) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	(*db).ReadMessage(action, conn, w, req)
 }
 
 func (m Message) Delete() DefinedAction {
@@ -111,8 +112,8 @@ func (action *DeleteMessage) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *DeleteMessage) Process(db *DB, conn net.Conn) {
-	(*db).DeleteMessage(action, conn)
+func (action *DeleteMessage) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	(*db).DeleteMessage(action, conn, w, req)
 }
 
 func (m Message) Print() {
@@ -128,11 +129,15 @@ func (m Message) Login() DefinedAction {
 
 func (action *LoginMessage) GetFromJSON(data []byte) {}
 
-func (action *LoginMessage) Process(db *DB, conn net.Conn) { fmt.Println("Message cant Login") }
+func (action *LoginMessage) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	fmt.Println("Message cant Login")
+}
 func (m Message) Logout() DefinedAction {
 	return &LogoutMessage{}
 }
 
 func (action *LogoutMessage) GetFromJSON(data []byte) {}
 
-func (action *LogoutMessage) Process(db *DB, conn net.Conn) { fmt.Println("Message cant Logout") }
+func (action *LogoutMessage) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	fmt.Println("Message cant Logout")
+}

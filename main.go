@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -29,7 +31,7 @@ type Action struct {
 
 type DefinedAction interface {
 	GetFromJSON([]byte)
-	Process(db *DB, conn net.Conn)
+	Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request)
 }
 
 type GeneralObject interface { // room message user
@@ -63,7 +65,7 @@ func main() {
 		return
 	}
 
-	q := `SELECT Attribute,Name,Email,Password,ID,Rooms,LoggedIn FROM users ORDER BY ID DESC`
+	q := `SELECT Attribute,Name,Email,Password,ID,Rooms FROM users ORDER BY ID DESC`
 	rows, err := db.datab.Query(q)
 	if err != nil {
 		panic(err)
@@ -71,14 +73,8 @@ func main() {
 	for rows.Next() {
 		var data User
 		var dataRooms []byte
-		var a []uint8
-		if err := rows.Scan(&data.Attribute, &data.Name, &data.Email, &data.Password, &data.ID, &dataRooms, &a); err != nil {
+		if err := rows.Scan(&data.Attribute, &data.Name, &data.Email, &data.Password, &data.ID, &dataRooms); err != nil {
 			panic(err)
-		}
-		if a[0] == 1 {
-			data.LoggedIn = true
-		} else {
-			data.LoggedIn = false
 		}
 		if data.ID >= FreeId {
 			FreeId = data.ID + 1
@@ -115,6 +111,9 @@ func main() {
 		db.Rooms = append(db.Rooms, data)
 	}
 
+	http.HandleFunc("/", Handler)
+	err = http.ListenAndServe(":8080", nil)
+	panic(err)
 	ln, err := net.Listen("tcp", ":8888")
 	if err != nil {
 		fmt.Println(err)
@@ -137,14 +136,27 @@ func handleConnection(conn net.Conn) {
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			fmt.Println(err)
-			return
+			panic(err)
 		}
-		db.UseAction(buf[:n], conn)
+		db.UseAction(buf[:n], conn, nil, nil)
 		fmt.Println("\nDB after action:")
 		for _, p := range db.Users {
 			p.Print()
 		}
+		fmt.Println()
+	}
+}
+
+func Handler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-type", "application/json")
+	if req.Method == "POST" {
+		data, err := io.ReadAll(req.Body)
+		req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Got Connection")
+		db.UseAction(data, nil, w, req)
 		fmt.Println()
 	}
 }
