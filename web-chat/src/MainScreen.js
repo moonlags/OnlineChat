@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import RoomList from './Rooms/RoomList';
 import ChatScreen from './Chat/ChatScreen';
 import LoginDialog from './LoginDialog';
+import RegisterDialog from './RegisterDialog';
 
 const drawerWidth = 240;
 const backendIP = "http://localhost:8080"
@@ -24,7 +25,7 @@ let testRoom = {
         
     ],
     ID: 1,
-    //...
+    Users:[],
 }
 
 let testRoom2 = {
@@ -75,16 +76,10 @@ let testRoom3 = {
     //...
 }
 
-const emptyRoom = {
-    Name: "",
-    Messages: [],
-    ID: 0,
-    //...
-}
 
 export default function MainScreen() {
     const [roomList, setRoomList] = React.useState([]);
-    const [activeRoom, setActiveRoom] = React.useState(emptyRoom);
+    const [activeRoom, setActiveRoom] = React.useState(testRoom);
 
     function updateRoomList() {
         setRoomList([testRoom, testRoom2, testRoom3]);
@@ -107,6 +102,7 @@ export default function MainScreen() {
                         The Go Chat: {activeRoom.Name}
                     </Typography>
 
+                    <RegisterDialog backendIP={backendIP}/>
                     <LoginDialog backendIP={backendIP}/>
                 </Toolbar>
             </AppBar>

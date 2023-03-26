@@ -26,7 +26,7 @@ export default function ChatScreen(props) {
     function sendMessage(event) {
         //alert("Sending: ".concat(userText)); 
         let temp = props.activeRoom;
-        temp.Messages.push({Text: userText, Author:"aaaaa"});
+        temp.Messages.push({Text: userText, Author:"demo"});
         props.setActiveRoom(temp);
         //place for fetch: action create message 
         //...

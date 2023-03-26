@@ -16,11 +16,18 @@ import PropTypes from 'prop-types';
 //Local imports
 
 
-export default function LoginDialog(props) {
+export var session = 0;
+
+export default function RegisterDialog(props) {
 	const [open, setOpen] = React.useState(false);
-	const [loginDone, setLoginDone] = React.useState(false);
+	const [RegDone, setRegDone] = React.useState(false);
 	const [login, setLogin] = React.useState("");
 	const [password, setPassword] = React.useState("");
+    const [email, setEmail] = React.useState("");
+
+    function emailChange(event){
+        setEmail(event.target.value)
+    };
 
 	function loginChange(event) {
 		setLogin(event.target.value);
@@ -34,22 +41,23 @@ export default function LoginDialog(props) {
 	};
 
 	function handleClose() {
-		if (loginDone) {
+		if (RegDone) {
 			setOpen(false);
 		}
 	};
 
-	function handleLogin() {
+	function handleReg() {
 		let actn = {
-			Action: "login",
+			Action: "create",
 			ObjName: "User",
 			User: {
-				Email: login,
+				Username: login,
+                Email: email,
 				Password: password,
 			},
 		}
 
-		//place for fetch: action login user
+		//place for fetch: action create user
 		fetch(props.backendIP.concat("/"), {
 			method: 'POST', 
 			mode: 'cors', 
@@ -62,7 +70,7 @@ export default function LoginDialog(props) {
 			referrerPolicy: 'no-referrer', 
 			body: JSON.stringify(actn),
 		}).then(resp => {
-			//The place where you should check if request was successfull and read info about response like headers
+			session = resp.headers.get("ChatSessionID")
 			if (!resp.ok) {
 				alert("Error occured during login");
 			}
@@ -73,7 +81,7 @@ export default function LoginDialog(props) {
 
 			console.log(data);
 			//if (data.Success == ...)
-			setLoginDone(true);
+			setRegDone(true);
 			setOpen(false);
 		});
 	}
@@ -81,23 +89,32 @@ export default function LoginDialog(props) {
 	return (
 		<>
 			<Button variant="standard" onClick={handleClickOpen}>
-				Login
+				Register
 			</Button>
 			<Dialog open={open} onClose={handleClose}>
-				<DialogTitle>Login</DialogTitle>
+				<DialogTitle>Register</DialogTitle>
 				<DialogContent>
 					<DialogContentText>
 						Enter your credentials
 					</DialogContentText>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Your Name"
+                        type="text"
+                        fullWidth
+                        variant='standard'
+                        value={login}
+                        onChange={loginChange}
+                    />
 					<TextField
-						autoFocus
 						margin="dense"
-						label="Email address"
+						label="Email Address"
 						type="email"
 						fullWidth
 						variant="standard"
-						value={login}
-						onChange={loginChange}
+						value={email}
+						onChange={emailChange}
 					/>
 					<TextField
 						margin="dense"
@@ -111,13 +128,13 @@ export default function LoginDialog(props) {
 				</DialogContent>
 				<DialogActions>
 					<Button>Cancel</Button>
-					<Button onClick={handleLogin}>Login</Button>
+					<Button onClick={handleReg}>Register</Button>
 				</DialogActions>
 			</Dialog>
 		</>
 	);
 }
 
-LoginDialog.propTypes = {
+RegisterDialog.propTypes = {
     backendIP: PropTypes.any.isRequired,
 };
