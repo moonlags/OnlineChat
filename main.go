@@ -111,9 +111,7 @@ func main() {
 		db.Rooms = append(db.Rooms, data)
 	}
 
-	http.HandleFunc("/", Handler)
-	err = http.ListenAndServe(":8080", nil)
-	panic(err)
+	go httphandle()
 	ln, err := net.Listen("tcp", ":8888")
 	if err != nil {
 		fmt.Println(err)
@@ -160,4 +158,10 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		fmt.Println(sessions)
 		fmt.Println()
 	}
+}
+
+func httphandle() {
+	http.HandleFunc("/", Handler)
+	err := http.ListenAndServe(":8080", nil)
+	panic(err)
 }

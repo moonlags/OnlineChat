@@ -122,7 +122,8 @@ func (db *DB) AddRoom(action *CreateRoom, conn net.Conn, w http.ResponseWriter, 
 		}
 	}
 	//-----------------------------------NOT DONE!-------------------------------------------
-	q := `INSERT INTO rooms (Attribute,Name,Messages,ID,Users) VALUES (?,?,?,?,?)`
+	q := `INSERT INTO rooms (Attribute,Name,Messages,ID,Users) VALUES (?,?,?,?,?); UPDATE users SET Rooms=? WHERE ID=?`
+
 	temp := db.Rooms[db.FindIndexRoom(action.R.ID)]
 	text, err = json.Marshal(temp.Messages)
 	if err != nil {
