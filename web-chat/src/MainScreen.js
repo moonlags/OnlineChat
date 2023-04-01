@@ -15,6 +15,7 @@ import RoomList from './Rooms/RoomList';
 import ChatScreen from './Chat/ChatScreen';
 import LoginDialog from './LoginDialog';
 import RegisterDialog from './RegisterDialog';
+import LogoutDialog from './LogoutDialog';
 
 const drawerWidth = 240;
 const backendIP = "http://localhost:8080"
@@ -86,6 +87,8 @@ const emptyRoom = {
 export default function MainScreen() {
     const [roomList, setRoomList] = React.useState([]);
     const [activeRoom, setActiveRoom] = React.useState(testRoom);
+    const [sessionID,setSessionID]=React.useState("");
+    const [user,setUser]=React.useState({Attribute:0,Name:"", Email:"",Password:"", id:0, Rooms:new Map(),})
 
     function updateRoomList() {
         setRoomList([testRoom, testRoom2, testRoom3]);
@@ -96,38 +99,37 @@ export default function MainScreen() {
     React.useEffect(() => {
         updateRoomList();
     });
+        return (
+            <Box sx={{ display: 'flex' }} height="100%">  {/*container for everything*/} 
 
-    return (
-        <Box sx={{ display: 'flex' }} height="100%">  {/*container for everything*/} 
+                {/*AppBar is the blue bar with the title on top*/}
+                <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+                    <Toolbar>
+                        
+                        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+                            The Go Chat: {activeRoom.Name}
+                        </Typography>
+                        <LoginDialog setUser={setUser} user={user} sessionID={sessionID} setSessionID={setSessionID} backendIP={backendIP}/>
+                        <LogoutDialog setUser={setUser} user={user} sessionId={sessionID} setSessionID={setSessionID} backendIP={backendIP}/>
+                        <RegisterDialog setUser={setUser} user={user} sessionID={sessionID} setSessionID={setSessionID} backendIP={backendIP}/>
+                    </Toolbar>
+                </AppBar>
 
-            {/*AppBar is the blue bar with the title on top*/}
-            <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-                <Toolbar>
-                    
-                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                        The Go Chat: {activeRoom.Name}
-                    </Typography>
+                {/*Drawer is that thing on the left side*/}
+                <Drawer
+                    variant="permanent"
+                    sx={{
+                        width: drawerWidth,
+                        flexShrink: 0,
+                        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+                    }}
+                >
+                    <Toolbar />
+                    <RoomList activeRoom={activeRoom} setActiveRoom={setActiveRoom} roomList={roomList}/>
+                </Drawer>
 
-                    <LoginDialog backendIP={backendIP}/>
-                    <RegisterDialog backendIP={backendIP}/>
-                </Toolbar>
-            </AppBar>
-
-            {/*Drawer is that thing on the left side*/}
-            <Drawer
-                variant="permanent"
-                sx={{
-                    width: drawerWidth,
-                    flexShrink: 0,
-                    [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
-                }}
-            >
-                <Toolbar />
-                <RoomList activeRoom={activeRoom} setActiveRoom={setActiveRoom} roomList={roomList}/>
-            </Drawer>
-
-            {/*This is the window with the chat*/}
-            <ChatScreen activeRoom={activeRoom} setActiveRoom={setActiveRoom}/>
-        </Box>
-    );
+                {/*This is the window with the chat*/}
+                <ChatScreen activeRoom={activeRoom} setActiveRoom={setActiveRoom}/>
+            </Box>
+        );
 }

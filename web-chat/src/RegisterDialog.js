@@ -21,7 +21,6 @@ export default function RegisterDialog(props) {
 	const [login, setLogin] = React.useState("");
 	const [password, setPassword] = React.useState("");
     const [email,setEmail] = React.useState("");
-    const [session,setSession] = React.useState(0);
 
     function emailChange(event){
         setEmail(event.target.value)
@@ -47,8 +46,8 @@ export default function RegisterDialog(props) {
 	function handleReg() {
 		let actn = {
 			Action: "create",
-			ObjName: "User",
-			User: {
+			Object: "user",
+			Data: {
 				Name: login,
                 Email: email,
 				Password: password,
@@ -69,69 +68,79 @@ export default function RegisterDialog(props) {
 			body: JSON.stringify(actn),
 		}).then(resp => {
 			if (!resp.ok) {
-				alert("Error occured during login");
+				alert("Error occured during register");
 			}
-            setSession(resp.headers.get('ChatSessionID'))
-
+            props.setSessionID(resp.headers.get('Chatsessionid'))
+			console.log(props.sessionID)
 			return resp.json()
 		}).then(data => {
 			//The place where you read json data from server
 
 			console.log(data);
-			//if (data.Success == ...)
-			setRegDone(true);
-			setOpen(false);
+			if (data.success == false){
+				props.setSessionID("")
+				alert(data.status)
+			}else{
+				props.setUser(data.obj)
+				setRegDone(true);
+				setOpen(false);
+			}
 		});
 	}
-
-	return (
-		<>
-			<Button variant="standard" onClick={handleClickOpen}>
-				Register
-			</Button>
-			<Dialog open={open} onClose={handleClose}>
-				<DialogTitle>Register</DialogTitle>
-				<DialogContent>
-					<DialogContentText>
-						Enter your credentials
-					</DialogContentText>
-					<TextField
-						autoFocus
-						margin="dense"
-						label="Your Name"
-						type="text"
-						fullWidth
-						variant="standard"
-						value={login}
-						onChange={loginChange}
-					/>
-                    <TextField
-                        margin="dense"
-                        label="Email Address"
-                        type="email"
-                        fullWidth
-                        variant="standard"
-                        value={email}
-                        onChange={emailChange}
-                    />
-					<TextField
-						margin="dense"
-						label="Password"
-						type="password"
-						fullWidth
-						variant="standard"
-						value={password}
-						onChange={passwordChange}
-					/>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={handleReg}>Register</Button>
-				</DialogActions>
-			</Dialog>
-		</>
-	);
+	if (props.sessionID==""&&props.user.id==0){
+		return (
+			<>
+				<Button variant="standard" onClick={handleClickOpen}>
+					Register
+				</Button>
+				<Dialog open={open} onClose={handleClose}>
+					<DialogTitle>Register</DialogTitle>
+					<DialogContent>
+						<DialogContentText>
+							Enter your credentials
+						</DialogContentText>
+						<TextField
+							autoFocus
+							margin="dense"
+							label="Your Name"
+							type="text"
+							fullWidth
+							variant="standard"
+							value={login}
+							onChange={loginChange}
+						/>
+						<TextField
+							margin="dense"
+							label="Email Address"
+							type="email"
+							fullWidth
+							variant="standard"
+							value={email}
+							onChange={emailChange}
+						/>
+						<TextField
+							margin="dense"
+							label="Password"
+							type="password"
+							fullWidth
+							variant="standard"
+							value={password}
+							onChange={passwordChange}
+						/>
+					</DialogContent>
+					<DialogActions>
+						<Button onClick={handleReg}>Register</Button>
+					</DialogActions>
+				</Dialog>
+			</>
+		);
+	}
 }
 
 RegisterDialog.propTypes = {
     backendIP: PropTypes.any.isRequired,
+	sessionID: PropTypes.any.isRequired,
+	setSessionID: PropTypes.any.isRequired,
+	user: PropTypes.any.isRequired,
+	setUser: PropTypes.any.isRequired
 };

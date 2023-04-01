@@ -147,6 +147,10 @@ func handleConnection(conn net.Conn) {
 
 func Handler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, Accept,X-Requested-With, Content-Type, ChatSessionID,Chatsessionid, Access-Control-Request-Method, Access-Control-Request-Headers, X-Auth-Token")
 	if req.Method == "POST" {
 		data, err := io.ReadAll(req.Body)
 		req.Body.Close()

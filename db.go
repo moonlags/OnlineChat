@@ -388,6 +388,8 @@ func (db *DB) LogoutUser(action *LogoutUser, conn net.Conn, w http.ResponseWrite
 			return
 		}
 	}
+	fmt.Println(sessions[req.Header.Get("ChatSessionID")].UserID)
+	fmt.Println(req.Header.Get("ChatSessionID"))
 	if w != nil && sessions[req.Header.Get("ChatSessionID")].UserID == action.Data.ID {
 		delete(sessions, req.Header.Get("ChatSessionID"))
 		w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))

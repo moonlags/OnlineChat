@@ -43,8 +43,8 @@ export default function LoginDialog(props) {
 	function handleLogin() {
 		let actn = {
 			Action: "login",
-			ObjName: "User",
-			User: {
+			Object: "user",
+			Data: {
 				Email: login,
 				Password: password,
 			},
@@ -67,57 +67,69 @@ export default function LoginDialog(props) {
 			if (!resp.ok) {
 				alert("Error occured during login");
 			}
-
+			props.setSessionID(resp.headers.get("Chatsessionid"))
+			console.log(props.sessionID)
 			return resp.json()
 		}).then(data => {
 			//The place where you read json data from server
 
 			console.log(data);
-			//if (data.Success == ...)
-			setLoginDone(true);
-			setOpen(false);
+			if (data.success == false){
+				alert(data.status)
+				props.setSessionID("")
+			}else{
+				console.log(data);
+				props.setUser(data.obj);
+				setLoginDone(true);
+				setOpen(false);
+			}
 		});
 	}
-
-	return (
-		<>
-			<Button variant="standard" onClick={handleClickOpen}>
-				Login
-			</Button>
-			<Dialog open={open} onClose={handleClose}>
-				<DialogTitle>Login</DialogTitle>
-				<DialogContent>
-					<DialogContentText>
-						Enter your credentials
-					</DialogContentText>
-					<TextField
-						autoFocus
-						margin="dense"
-						label="Email address"
-						type="email"
-						fullWidth
-						variant="standard"
-						value={login}
-						onChange={loginChange}
-					/>
-					<TextField
-						margin="dense"
-						label="Password"
-						type="password"
-						fullWidth
-						variant="standard"
-						value={password}
-						onChange={passwordChange}
-					/>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={handleLogin}>Login</Button>
-				</DialogActions>
-			</Dialog>
-		</>
-	);
+	if (props.sessionID==""&&props.user.id==0){
+		return (
+			<>
+				<Button variant="standard" onClick={handleClickOpen}>
+					Login
+				</Button>
+				<Dialog open={open} onClose={handleClose}>
+					<DialogTitle>Login</DialogTitle>
+					<DialogContent>
+						<DialogContentText>
+							Enter your credentials
+						</DialogContentText>
+						<TextField
+							autoFocus
+							margin="dense"
+							label="Email address"
+							type="email"
+							fullWidth
+							variant="standard"
+							value={login}
+							onChange={loginChange}
+						/>
+						<TextField
+							margin="dense"
+							label="Password"
+							type="password"
+							fullWidth
+							variant="standard"
+							value={password}
+							onChange={passwordChange}
+						/>
+					</DialogContent>
+					<DialogActions>
+						<Button onClick={handleLogin}>Login</Button>
+					</DialogActions>
+				</Dialog>
+			</>
+		);
+	}
 }
 
 LoginDialog.propTypes = {
     backendIP: PropTypes.any.isRequired,
+	sessionID: PropTypes.any.isRequired,
+	setSessionID: PropTypes.any.isRequired,
+	user: PropTypes.any.isRequired,
+	setUser: PropTypes.any.isRequired
 };
