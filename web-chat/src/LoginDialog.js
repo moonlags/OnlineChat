@@ -68,7 +68,7 @@ export default function LoginDialog(props) {
 				alert("Error occured during login");
 			}
 			props.setSessionID(resp.headers.get("Chatsessionid"))
-			console.log(props.sessionID)
+			console.log(resp.headers.get("Chatsessionid"))
 			return resp.json()
 		}).then(data => {
 			//The place where you read json data from server

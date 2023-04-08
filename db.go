@@ -369,8 +369,8 @@ func (db *DB) LogoutUser(action *LogoutUser, conn net.Conn, w http.ResponseWrite
 				return
 			}
 		}
-		if w != nil && sessions[req.Header.Get("ChatSessionID")].UserID == action.Data.ID {
-			w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+		if w != nil && sessions[req.Header.Get("Chatsessionid")].UserID == action.Data.ID {
+			w.Header().Set("Chatsessionid", req.Header.Get("Chatsessionid"))
 			io.WriteString(w, string(text))
 		}
 		return
@@ -388,11 +388,10 @@ func (db *DB) LogoutUser(action *LogoutUser, conn net.Conn, w http.ResponseWrite
 			return
 		}
 	}
-	fmt.Println(sessions[req.Header.Get("ChatSessionID")].UserID)
-	fmt.Println(req.Header.Get("ChatSessionID"))
-	if w != nil && sessions[req.Header.Get("ChatSessionID")].UserID == action.Data.ID {
-		delete(sessions, req.Header.Get("ChatSessionID"))
-		w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+	fmt.Println(sessions[req.Header.Get("Chatsessionid")].UserID)
+	if w != nil && sessions[req.Header.Get("Chatsessionid")].UserID == action.Data.ID {
+		delete(sessions, req.Header.Get("Chatsessionid"))
+		w.Header().Set("Chatsessionid", req.Header.Get("Chatsessionid"))
 		io.WriteString(w, string(text))
 	}
 }

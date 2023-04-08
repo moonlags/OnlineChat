@@ -33,12 +33,12 @@ export default function LogoutDialog(props) {
 		//place for fetch: action login user
 		fetch(props.backendIP.concat("/"), {
 			method: 'POST',
-			ChatSessionID:props.sessionID, 
 			mode: 'cors', 
 			cache: 'no-cache', 
 			credentials: 'same-origin', 
 			headers: {
-			  	'Content-Type': 'application/json'
+			  	'Content-Type': 'application/json',
+				'Chatsessionid': props.sessionID
 			},
 			redirect: 'follow', 
 			referrerPolicy: 'no-referrer', 
