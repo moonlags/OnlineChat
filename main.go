@@ -119,7 +119,6 @@ func main() {
 	}
 	for {
 		conn, err := ln.Accept()
-		defer conn.Close()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -134,7 +133,8 @@ func handleConnection(conn net.Conn) {
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			panic(err)
+			conn.Close()
+			break
 		}
 		db.UseAction(buf[:n], conn, nil, nil)
 		fmt.Println("\nDB after action:")
