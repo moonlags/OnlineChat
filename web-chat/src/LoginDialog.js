@@ -17,7 +17,6 @@ import PropTypes from 'prop-types';
 
 export default function LoginDialog(props) {
 	const [open, setOpen] = React.useState(false);
-	const [loginDone, setLoginDone] = React.useState(false);
 	const [login, setLogin] = React.useState("");
 	const [password, setPassword] = React.useState("");
 
@@ -33,9 +32,7 @@ export default function LoginDialog(props) {
 	};
 
 	function handleClose() {
-		if (loginDone) {
-			setOpen(false);
-		}
+		setOpen(false);
 	};
 	
 
@@ -80,7 +77,6 @@ export default function LoginDialog(props) {
 			}else{
 				console.log(data);
 				props.setUser(data.obj);
-				setLoginDone(true);
 				setOpen(false);
 			}
 		});

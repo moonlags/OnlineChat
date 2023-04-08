@@ -3,12 +3,6 @@ import * as React from 'react';
 
 //Material UI imports
 import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
 
 //Other imports
 import PropTypes from 'prop-types';
@@ -16,8 +10,6 @@ import PropTypes from 'prop-types';
 //Local imports
 
 export default function LogoutDialog(props) {
-	const [logoutDone, setLogoutDone] = React.useState(false);
-
 
 	function handleLogout() {
 		let actn = {
@@ -59,7 +51,6 @@ export default function LogoutDialog(props) {
 				props.setSessionID(temp)
 			}else{
 				props.setUser({Attribute:0,Name:"", Email:"",Password:"", id:0, Rooms:new Map(),})
-				setLogoutDone(true)
 			}
 		});
 	}
