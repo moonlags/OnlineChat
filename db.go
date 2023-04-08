@@ -96,10 +96,16 @@ func (db *DB) UseAction(text []byte, conn net.Conn, w http.ResponseWriter, req *
 }
 
 func (db *DB) AddRoom(action *CreateRoom, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+	str := ""
 	var data Output
 	action.R.ID = FreeId
 	FreeId++
 	db.Rooms = append(db.Rooms, action.R)
+	for i := range action.R.Users {
+		db.Users[db.FindIndexUser(i)].Rooms[action.R.ID] = true
+		//rooms, _ := json.Marshal(db.Users[db.FindIndexUser(i)].Rooms)
+		//str = str + "UPDATE user SET Rooms=" + string(rooms) + " WHERE ID=" + fmt.Sprint(i) + ";"
+	}
 	data.Action, data.Object, data.Success, data.Status, data.Obj = "create", "room", true, "", db.Rooms[db.FindIndexRoom(action.R.ID)]
 	text, err := json.Marshal(data)
 	if err != nil {
@@ -121,8 +127,9 @@ func (db *DB) AddRoom(action *CreateRoom, conn net.Conn, w http.ResponseWriter, 
 			}
 		}
 	}
+
 	//-----------------------------------NOT DONE!-------------------------------------------
-	q := `INSERT INTO rooms (Attribute,Name,Messages,ID,Users) VALUES (?,?,?,?,?); UPDATE users SET Rooms=? WHERE ID=?`
+	q := `INSERT INTO rooms (Attribute,Name,Messages,ID,Users) VALUES (?,?,?,?,?);` + str
 
 	temp := db.Rooms[db.FindIndexRoom(action.R.ID)]
 	text, err = json.Marshal(temp.Messages)
@@ -145,6 +152,7 @@ func (db *DB) UpdateRoom(action *UpdateRoom, conn net.Conn, w http.ResponseWrite
 		db.Rooms[db.FindIndexRoom(action.R.ID)] = action.R
 		for i, v := range temp.Users {
 			db.Rooms[db.FindIndexRoom(action.R.ID)].Users[i] = v
+			db.Users[db.FindIndexUser(i)].Rooms[action.R.ID] = true
 		}
 		for i, v := range temp.Messages {
 			db.Rooms[db.FindIndexRoom(action.R.ID)].Messages[i] = v
@@ -210,7 +218,51 @@ func (db *DB) UpdateRoom(action *UpdateRoom, conn net.Conn, w http.ResponseWrite
 	}
 }
 func (db *DB) ReadRoom(action *ReadRoom, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	db.Rooms[db.FindIndexRoom(action.Data.ID)].Print()
+	var data Output
+	if db.FindIndexRoom(action.Data.ID) != -1 {
+		data.Action, data.Object, data.Success, data.Status, data.Obj = "read", "room", true, "", db.Rooms[db.FindIndexRoom(action.Data.ID)]
+		text, err := json.Marshal(data)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if conn != nil {
+			_, err = conn.Write(text)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+		if w != nil {
+			for i := range db.Rooms[db.FindIndexRoom(action.Data.ID)].Users {
+				if sessions[req.Header.Get("ChatSessionID")].UserID == i {
+					w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+					io.WriteString(w, string(text))
+				}
+			}
+		}
+	}
+	data.Action, data.Object, data.Success, data.Status = "read", "room", false, "Room not found!"
+	text, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if conn != nil {
+		_, err = conn.Write(text)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	if w != nil {
+		for i := range db.Rooms[db.FindIndexRoom(action.Data.ID)].Users {
+			if sessions[req.Header.Get("ChatSessionID")].UserID == i {
+				w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+				io.WriteString(w, string(text))
+			}
+		}
+	}
 }
 func (db *DB) DeleteRoom(action *DeleteRoom, conn net.Conn, w http.ResponseWriter, req *http.Request) {
 	index := db.FindIndexRoom(action.Data.ID)
@@ -219,8 +271,62 @@ func (db *DB) DeleteRoom(action *DeleteRoom, conn net.Conn, w http.ResponseWrite
 func (db *DB) AddMessage(action *CreateMessage, conn net.Conn, w http.ResponseWriter, req *http.Request) {
 	action.M.ID = FreeId
 	FreeId++
-	roomIndex := db.FindIndexRoom(action.M.Room)
-	db.Rooms[roomIndex].Messages = append(db.Rooms[roomIndex].Messages, action.M)
+	var data Output
+	if db.FindIndexRoom(action.M.Room) != -1 {
+		db.Rooms[db.FindIndexRoom(action.M.Room)].Messages = append(db.Rooms[db.FindIndexRoom(action.M.Room)].Messages, action.M)
+		data.Action, data.Object, data.Success, data.Status = "create", "message", true, ""
+		text, err := json.Marshal(data)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if conn != nil {
+			_, err = conn.Write(text)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+		if w != nil {
+			for i := range db.Rooms[db.FindIndexRoom(action.M.Room)].Users {
+				if sessions[req.Header.Get("ChatSessionID")].UserID == i {
+					w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+					io.WriteString(w, string(text))
+				}
+			}
+		}
+		q := `UPDATE rooms SET Messages=? WHERE ID=?`
+		text, err = json.Marshal(db.Rooms[db.FindIndexRoom(action.M.Room)].Messages)
+		if err != nil {
+			panic(err)
+		}
+		_, err = db.datab.Query(q, text, action.M.Room)
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+	data.Action, data.Object, data.Success, data.Status = "create", "message", false, "Room not found!"
+	text, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if conn != nil {
+		_, err = conn.Write(text)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	if w != nil {
+		for i := range db.Rooms[db.FindIndexRoom(action.M.Room)].Users {
+			if sessions[req.Header.Get("ChatSessionID")].UserID == i {
+				w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
+				io.WriteString(w, string(text))
+			}
+		}
+	}
 }
 func (db *DB) UpdateMessage(action *UpdateMessage, conn net.Conn, w http.ResponseWriter, req *http.Request) {
 	db.Rooms[db.FindIndexRoom(action.M.Room)].Messages[db.Rooms[db.FindIndexRoom(action.M.Room)].FindIndex(action.M.ID)] = action.M
@@ -260,6 +366,7 @@ func (db *DB) AddUser(action *CreateUser, conn net.Conn, w http.ResponseWriter, 
 	action.U.ID = FreeId
 	FreeId++
 	db.Users = append(db.Users, action.U)
+	db.Users[db.FindIndexUser(action.U.ID)].Rooms = make(map[uint64]bool)
 	data.Action, data.Object, data.Success, data.Status, data.Obj = "create", "user", true, "", db.Users[db.FindIndexUser(action.U.ID)]
 	text, err := json.Marshal(data)
 	if err != nil {

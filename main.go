@@ -83,6 +83,9 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		if data.Rooms == nil {
+			data.Rooms = make(map[uint64]bool)
+		}
 		db.Users = append(db.Users, data)
 	}
 	q = `SELECT Attribute,Name,Messages,ID,Users FROM rooms ORDER BY ID DESC`
@@ -107,6 +110,9 @@ func main() {
 		err = json.Unmarshal(dataUsers, &data.Users)
 		if err != nil {
 			panic(err)
+		}
+		if data.Users == nil {
+			data.Users = make(map[uint64]uint32)
 		}
 		db.Rooms = append(db.Rooms, data)
 	}
