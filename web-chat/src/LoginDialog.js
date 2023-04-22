@@ -17,7 +17,6 @@ import PropTypes from 'prop-types';
 
 export default function LoginDialog(props) {
 	const [open, setOpen] = React.useState(false);
-	const [loginDone, setLoginDone] = React.useState(false);
 	const [login, setLogin] = React.useState("");
 	const [password, setPassword] = React.useState("");
 
@@ -33,9 +32,7 @@ export default function LoginDialog(props) {
 	};
 
 	function handleClose() {
-		if (loginDone) {
-			setOpen(false);
-		}
+		setOpen(false);
 	};
 	
 
@@ -67,25 +64,24 @@ export default function LoginDialog(props) {
 			if (!resp.ok) {
 				alert("Error occured during login");
 			}
-			props.setSessionID(resp.headers.get("Chatsessionid"))
-			console.log(resp.headers.get("Chatsessionid"))
+			props.setjwt(resp.headers.get("Jwt"))
+			console.log(resp.headers.get("Jwt"))
 			return resp.json()
 		}).then(data => {
 			//The place where you read json data from server
 
 			console.log(data);
-			if (data.success == false){
+			if (data.success === false){
 				alert(data.status)
-				props.setSessionID("")
+				props.setjwt("")
 			}else{
 				console.log(data);
 				props.setUser(data.obj);
-				setLoginDone(true);
 				setOpen(false);
 			}
 		});
 	}
-	if (props.sessionID==""&&props.user.id==0){
+	if (props.jwt===""&&props.user.id===0){
 		return (
 			<>
 				<Button variant="standard" onClick={handleClickOpen}>
@@ -128,8 +124,8 @@ export default function LoginDialog(props) {
 
 LoginDialog.propTypes = {
     backendIP: PropTypes.any.isRequired,
-	sessionID: PropTypes.any.isRequired,
-	setSessionID: PropTypes.any.isRequired,
+	jwt: PropTypes.any.isRequired,
+	setjwt: PropTypes.any.isRequired,
 	user: PropTypes.any.isRequired,
 	setUser: PropTypes.any.isRequired
 };

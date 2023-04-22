@@ -156,7 +156,7 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Origin, Accept,X-Requested-With, Content-Type, ChatSessionID, Chatsessionid, Access-Control-Request-Method, Access-Control-Request-Headers, X-Auth-Token")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, Accept, X-Requested-With, jwt, Jwt, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, X-Auth-Token")
 	if req.Method == "POST" {
 		data, err := io.ReadAll(req.Body)
 		req.Body.Close()
@@ -165,7 +165,6 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 		}
 		fmt.Println("Got Connection")
 		db.UseAction(data, nil, w, req)
-		fmt.Println(sessions)
 		fmt.Println()
 	}
 	if req.Method == "OPTIONS" {

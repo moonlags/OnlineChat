@@ -86,8 +86,8 @@ const emptyRoom = {
 
 export default function MainScreen() {
     const [roomList, setRoomList] = React.useState([]);
-    const [activeRoom, setActiveRoom] = React.useState(testRoom);
-    const [sessionID,setSessionID]=React.useState("");
+    const [activeRoom, setActiveRoom] = React.useState(emptyRoom);
+    const [jwt,setjwt]=React.useState("");
     const [user,setUser]=React.useState({Attribute:0,Name:"", Email:"",Password:"", id:0, Rooms:new Map(),})
 
     function updateRoomList() {
@@ -109,9 +109,9 @@ export default function MainScreen() {
                         <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
                             The Go Chat: {activeRoom.Name}
                         </Typography>
-                        <LoginDialog setUser={setUser} user={user} sessionID={sessionID} setSessionID={setSessionID} backendIP={backendIP}/>
-                        <LogoutDialog setUser={setUser} user={user} sessionId={sessionID} setSessionID={setSessionID} backendIP={backendIP}/>
-                        <RegisterDialog setUser={setUser} user={user} sessionID={sessionID} setSessionID={setSessionID} backendIP={backendIP}/>
+                        <LoginDialog setUser={setUser} user={user} jwt={jwt} setjwt={setjwt} backendIP={backendIP}/>
+                        <LogoutDialog setUser={setUser} user={user} jwt={jwt} setjwt={setjwt} backendIP={backendIP}/>
+                        <RegisterDialog setUser={setUser} user={user} jwt={jwt} setjwt={setjwt} backendIP={backendIP}/>
                     </Toolbar>
                 </AppBar>
 

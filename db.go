@@ -1,14 +1,19 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"net/http"
-	"time"
+	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Output struct {
@@ -19,12 +24,9 @@ type Output struct {
 	Obj     GeneralObject `json:"obj"`
 }
 
-type Session struct {
-	UserID  uint64
-	Timeout time.Time
-}
+var privkey, _ = rsa.GenerateKey(rand.Reader, 256)
+var hmacs = make(map[uint64]string)
 
-var sessions = make(map[string]Session)
 var FreeId uint64 = 1
 
 type DB struct {
@@ -120,12 +122,7 @@ func (db *DB) AddRoom(action *CreateRoom, conn net.Conn, w http.ResponseWriter, 
 		}
 	}
 	if w != nil {
-		for i := range db.Rooms[db.FindIndexRoom(action.R.ID)].Users {
-			if sessions[req.Header.Get("ChatSessionID")].UserID == i {
-				w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
-				io.WriteString(w, string(text))
-			}
-		}
+
 	}
 
 	//-----------------------------------NOT DONE!-------------------------------------------
@@ -171,12 +168,7 @@ func (db *DB) UpdateRoom(action *UpdateRoom, conn net.Conn, w http.ResponseWrite
 			}
 		}
 		if w != nil {
-			for i := range db.Rooms[db.FindIndexRoom(action.R.ID)].Users {
-				if sessions[req.Header.Get("ChatSessionID")].UserID == i {
-					w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
-					io.WriteString(w, string(text))
-				}
-			}
+
 		}
 		//----------------------NOT DONE!-------------------------------------------
 		//UPDATE `chatdb`.`rooms` SET `Name`='fsd' WHERE  `Attribute`=111
@@ -209,12 +201,7 @@ func (db *DB) UpdateRoom(action *UpdateRoom, conn net.Conn, w http.ResponseWrite
 		}
 	}
 	if w != nil {
-		for i := range db.Rooms[db.FindIndexRoom(action.R.ID)].Users {
-			if sessions[req.Header.Get("ChatSessionID")].UserID == i {
-				w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
-				io.WriteString(w, string(text))
-			}
-		}
+
 	}
 }
 func (db *DB) ReadRoom(action *ReadRoom, conn net.Conn, w http.ResponseWriter, req *http.Request) {
@@ -234,12 +221,7 @@ func (db *DB) ReadRoom(action *ReadRoom, conn net.Conn, w http.ResponseWriter, r
 			}
 		}
 		if w != nil {
-			for i := range db.Rooms[db.FindIndexRoom(action.Data.ID)].Users {
-				if sessions[req.Header.Get("ChatSessionID")].UserID == i {
-					w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
-					io.WriteString(w, string(text))
-				}
-			}
+
 		}
 	}
 	data.Action, data.Object, data.Success, data.Status = "read", "room", false, "Room not found!"
@@ -256,12 +238,7 @@ func (db *DB) ReadRoom(action *ReadRoom, conn net.Conn, w http.ResponseWriter, r
 		}
 	}
 	if w != nil {
-		for i := range db.Rooms[db.FindIndexRoom(action.Data.ID)].Users {
-			if sessions[req.Header.Get("ChatSessionID")].UserID == i {
-				w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
-				io.WriteString(w, string(text))
-			}
-		}
+
 	}
 }
 func (db *DB) DeleteRoom(action *DeleteRoom, conn net.Conn, w http.ResponseWriter, req *http.Request) {
@@ -288,12 +265,7 @@ func (db *DB) AddMessage(action *CreateMessage, conn net.Conn, w http.ResponseWr
 			}
 		}
 		if w != nil {
-			for i := range db.Rooms[db.FindIndexRoom(action.M.Room)].Users {
-				if sessions[req.Header.Get("ChatSessionID")].UserID == i {
-					w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
-					io.WriteString(w, string(text))
-				}
-			}
+
 		}
 		q := `UPDATE rooms SET Messages=? WHERE ID=?`
 		text, err = json.Marshal(db.Rooms[db.FindIndexRoom(action.M.Room)].Messages)
@@ -320,12 +292,7 @@ func (db *DB) AddMessage(action *CreateMessage, conn net.Conn, w http.ResponseWr
 		}
 	}
 	if w != nil {
-		for i := range db.Rooms[db.FindIndexRoom(action.M.Room)].Users {
-			if sessions[req.Header.Get("ChatSessionID")].UserID == i {
-				w.Header().Set("ChatSessionID", req.Header.Get("ChatSessionID"))
-				io.WriteString(w, string(text))
-			}
-		}
+
 	}
 }
 func (db *DB) UpdateMessage(action *UpdateMessage, conn net.Conn, w http.ResponseWriter, req *http.Request) {
@@ -381,12 +348,19 @@ func (db *DB) AddUser(action *CreateUser, conn net.Conn, w http.ResponseWriter, 
 		}
 	}
 	if w != nil {
-		i := fmt.Sprint(rand.Intn(9999999999))
-		for _, ok := sessions[i]; ok; {
-			i = fmt.Sprint(rand.Intn(9999999999))
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"name":     action.U.Name,
+			"email":    action.U.Email,
+			"password": action.U.Password,
+		})
+		tokenString, err := token.SignedString([]byte(fmt.Sprint(privkey)))
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
-		sessions[i] = Session{action.U.ID, time.Now()}
-		w.Header().Set("ChatSessionID", i)
+		i := strings.Split(tokenString, ".")
+		hmacs[action.U.ID] = i[len(i)-1]
+		w.Header().Set("jwt", tokenString)
 		io.WriteString(w, string(text))
 	}
 	q := `INSERT INTO users (Attribute,Name,Email,Password,ID,Rooms) VALUES (?,?,?,?,?,?)`
@@ -430,12 +404,19 @@ func (db *DB) LoginUser(action *LoginUser, conn net.Conn, w http.ResponseWriter,
 				}
 			}
 			if w != nil {
-				i := fmt.Sprint(rand.Intn(9999999999))
-				for _, ok := sessions[i]; ok; {
-					i = fmt.Sprint(rand.Intn(9999999999))
+				token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+					"name":     u.Name,
+					"email":    u.Email,
+					"password": u.Password,
+				})
+				tokenString, err := token.SignedString(privkey)
+				if err != nil {
+					fmt.Println(err)
+					return
 				}
-				sessions[i] = Session{data.Obj.GetId(), time.Now()}
-				w.Header().Set("ChatSessionID", i)
+				i := strings.Split(tokenString, ".")
+				hmacs[u.ID] = i[len(i)-1]
+				w.Header().Set("jwt", tokenString)
 				io.WriteString(w, string(text))
 			}
 			return
@@ -476,7 +457,7 @@ func (db *DB) LogoutUser(action *LogoutUser, conn net.Conn, w http.ResponseWrite
 				return
 			}
 		}
-		if w != nil && sessions[req.Header.Get("Chatsessionid")].UserID == action.Data.ID {
+		if w != nil {
 			w.Header().Set("Chatsessionid", req.Header.Get("Chatsessionid"))
 			io.WriteString(w, string(text))
 		}
@@ -495,10 +476,16 @@ func (db *DB) LogoutUser(action *LogoutUser, conn net.Conn, w http.ResponseWrite
 			return
 		}
 	}
-	fmt.Println(sessions[req.Header.Get("Chatsessionid")].UserID)
-	if w != nil && sessions[req.Header.Get("Chatsessionid")].UserID == action.Data.ID {
-		delete(sessions, req.Header.Get("Chatsessionid"))
-		w.Header().Set("Chatsessionid", req.Header.Get("Chatsessionid"))
+	fmt.Println(req.Header.Get("jwt"))
+	if w != nil {
+		res := strings.Split(req.Header.Get("jwt"), ".")
+		h := hmac.New(sha256.New, []byte(fmt.Sprint(privkey)))
+		h.Write([]byte(res[0] + "." + res[1]))
+		if !hmac.Equal(h.Sum(nil), []byte(res[len(res)-1])) {
+			fmt.Println("Invalid hmac!", privkey)
+			return
+		}
+		w.Header().Set("jwt", req.Header.Get("jwt"))
 		io.WriteString(w, string(text))
 	}
 }

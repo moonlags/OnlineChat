@@ -17,7 +17,6 @@ import PropTypes from 'prop-types';
 
 export default function RegisterDialog(props) {
 	const [open, setOpen] = React.useState(false);
-	const [RegDone, setRegDone] = React.useState(false);
 	const [login, setLogin] = React.useState("");
 	const [password, setPassword] = React.useState("");
     const [email,setEmail] = React.useState("");
@@ -37,9 +36,7 @@ export default function RegisterDialog(props) {
 	};
 
 	function handleClose() {
-		if (RegDone) {
-			setOpen(false);
-		}
+		setOpen(false);
 	};
 
 
@@ -70,24 +67,23 @@ export default function RegisterDialog(props) {
 			if (!resp.ok) {
 				alert("Error occured during register");
 			}
-            props.setSessionID(resp.headers.get('Chatsessionid'))
-			console.log(props.sessionID)
+            props.setjwt(resp.headers.get('Jwt'))
+			console.log(resp.headers.get("Jwt"))
 			return resp.json()
 		}).then(data => {
 			//The place where you read json data from server
 
 			console.log(data);
-			if (data.success == false){
-				props.setSessionID("")
+			if (data.success === false){
+				props.setjwt("")
 				alert(data.status)
 			}else{
 				props.setUser(data.obj)
-				setRegDone(true);
 				setOpen(false);
 			}
 		});
 	}
-	if (props.sessionID==""&&props.user.id==0){
+	if (props.jwt===""&&props.user.id===0){
 		return (
 			<>
 				<Button variant="standard" onClick={handleClickOpen}>
@@ -139,8 +135,8 @@ export default function RegisterDialog(props) {
 
 RegisterDialog.propTypes = {
     backendIP: PropTypes.any.isRequired,
-	sessionID: PropTypes.any.isRequired,
-	setSessionID: PropTypes.any.isRequired,
+	jwt: PropTypes.any.isRequired,
+	setjwt: PropTypes.any.isRequired,
 	user: PropTypes.any.isRequired,
 	setUser: PropTypes.any.isRequired
 };
