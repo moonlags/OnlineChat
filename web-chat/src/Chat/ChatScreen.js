@@ -37,13 +37,6 @@ export default function ChatScreen(props) {
         setUserText("");
     }
 
-    function handleKeyPress(e) {
-        //console.log( "You pressed a key: " + e.key );
-        if (e.key=="Enter"){
-            sendMessage()
-        }
-    }
-
     return (
         <Box m="10" sx={{ flexGrow: 1, pl: "5%", pr: "5%"}}>
             <Toolbar />
@@ -57,7 +50,7 @@ export default function ChatScreen(props) {
 
             <Paper elevation={3} sx={{ top: 'auto', bottom: 0, mb:"1%", position:"sticky"}}> {/*Toolbar with text field and send button*/}
                 <Toolbar>
-                    <TextField label="Type message: " onKeyPress={(e) => handleKeyPress(e)} variant="standard" fullWidth autoFocus sx={{mr:"2%"}} value={userText} onChange={userTextChange}/>
+                    <TextField label="Type message: " variant="standard" fullWidth autoFocus sx={{mr:"2%"}} value={userText} onChange={userTextChange}/>
                     <Button variant="contained" endIcon={<SendIcon />} onClick={sendMessage}>
                         Send
                     </Button>

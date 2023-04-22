@@ -17,6 +17,7 @@ import PropTypes from 'prop-types';
 
 export default function RegisterDialog(props) {
 	const [open, setOpen] = React.useState(false);
+	const [RegDone, setRegDone] = React.useState(false);
 	const [login, setLogin] = React.useState("");
 	const [password, setPassword] = React.useState("");
     const [email,setEmail] = React.useState("");
@@ -36,7 +37,9 @@ export default function RegisterDialog(props) {
 	};
 
 	function handleClose() {
-		setOpen(false);
+		if (RegDone) {
+			setOpen(false);
+		}
 	};
 
 
@@ -79,6 +82,7 @@ export default function RegisterDialog(props) {
 				alert(data.status)
 			}else{
 				props.setUser(data.obj)
+				setRegDone(true);
 				setOpen(false);
 			}
 		});
