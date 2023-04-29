@@ -10,49 +10,48 @@ import PropTypes from 'prop-types';
 //Local imports
 
 export default function LogoutDialog(props) {
+    const ws=React.useRef(null);
+
+    React.useEffect(()=>{
+        ws.current=new WebSocket(props.backendIP);
+        ws.current.onopen=()=>console.log("ws opened")
+        ws.current.onclose=()=>console.log("ws closed")
+
+        const wsCurrent =ws.current;
+
+        return ()=>{
+            wsCurrent.close();
+        };
+    },[]);
+
+    React.useEffect(()=>{
+        if(!ws.current)return;
+
+        ws.current.onmessage=e=>{
+            const message=JSON.parse(e.data);
+            receiveMessage(message);
+            console.log("e",message);
+        };
+    },[]);
+
+	function receiveMessage(message){
+		if (message.success&&message.status===""){
+			props.setUser({Attribute:0,Name:"", Email:"",Password:"", id:0, Rooms:new Map(),})
+			props.setjwt("")
+		}else{
+			alert(message.status)
+		}
+	}
 
 	function handleLogout() {
-		let actn = {
-			Action: "logout",
-			Object: "user",
-			Data: {
-				ID: props.user.id 
-			},
-		}
-		console.log(actn)
+        ws.current.send(JSON.stringify({
+            action:"logout",
+            object:"user",
+            data:{
+				ID:props.user.id
+            },
+        }))
 		console.log(props.jwt)
-		let temp=props.jwt
-		//place for fetch: action login user
-		fetch(props.backendIP.concat("/"), {
-			method: 'POST',
-			mode: 'cors', 
-			cache: 'no-cache', 
-			credentials: 'same-origin', 
-			headers: {
-			  	'Content-Type': 'application/json',
-				'jwt': props.jwt
-			},
-			redirect: 'follow', 
-			referrerPolicy: 'no-referrer', 
-			body: JSON.stringify(actn),
-		}).then(resp => {
-			//The place where you should check if request was successfull and read info about response like headers
-			if (!resp.ok) {
-				alert("Error occured during logout");
-			}
-			props.setjwt("")
-			return resp.json()
-		}).then(data => {
-			//The place where you read json data from server
-
-			console.log(data);
-			if (data.success === false){
-				alert(data.status)
-				props.setjwt(temp)
-			}else{
-				props.setUser({Attribute:0,Name:"", Email:"",Password:"", id:0, Rooms:new Map(),})
-			}
-		});
 	}
 	if (props.jwt!==""&&props.user.id!==0){
 		return (

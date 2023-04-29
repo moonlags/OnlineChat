@@ -18,7 +18,7 @@ import RegisterDialog from './RegisterDialog';
 import LogoutDialog from './LogoutDialog';
 
 const drawerWidth = 240;
-const backendIP = "http://localhost:8080"
+const backendIP = "ws://localhost:8080/ws"
 
 let testRoom = {
     Name: "Test room 1",
@@ -129,7 +129,7 @@ export default function MainScreen() {
                 </Drawer>
 
                 {/*This is the window with the chat*/}
-                <ChatScreen activeRoom={activeRoom} setActiveRoom={setActiveRoom}/>
+                <ChatScreen backendIP={backendIP} jwt={jwt} user={user} activeRoom={activeRoom} setActiveRoom={setActiveRoom}/>
             </Box>
         );
 }

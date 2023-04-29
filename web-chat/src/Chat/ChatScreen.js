@@ -18,22 +18,65 @@ import MessageListItem from './MessageListItem';
 
 export default function ChatScreen(props) {
     const [userText, setUserText] = React.useState("");
+    const ws=React.useRef(null);
+
+    React.useEffect(()=>{
+        ws.current=new WebSocket(props.backendIP);
+        ws.current.onopen=()=>console.log("ws opened")
+        ws.current.onclose=()=>console.log("ws closed")
+
+        const wsCurrent =ws.current;
+
+        return ()=>{
+            wsCurrent.close();
+        };
+    },[]);
+
+    React.useEffect(()=>{
+        if(!ws.current)return;
+
+        ws.current.onmessage=e=>{
+            const message=JSON.parse(e.data);
+            receiveMessage(message);
+            console.log("e",message);
+        };
+    },[]);
+
 
     function userTextChange(event) {
         setUserText(event.target.value);
     }
 
-    function sendMessage(event) {
-        //alert("Sending: ".concat(userText)); 
-        if (userText===""){
-            return;
+    function receiveMessage(message){
+        if (message.success&&message.status===""){
+            let tmp=props.activeRoom;
+            tmp.Messages.push({Text:message.obj.cont.text,Author:message.obj.author});
+            props.setActiveRoom(tmp);
+        }else{
+            alert(message.status)
         }
-        let temp = props.activeRoom;
-        temp.Messages.push({Text: userText, Author:"aaaaa"});
-        props.setActiveRoom(temp);
-        //place for fetch: action create message 
-        //...
+    }
 
+    function sendMessage(event) {
+        if (userText===""){
+            return
+        }
+        let tmp=props.activeRoom;
+        tmp.Messages.push({Text:userText,Author:props.user.Name});
+        props.setActiveRoom(tmp);
+        ws.current.send(JSON.stringify({
+            action:"create",
+            object:"message",
+            userid:props.user.id,
+            jwt:props.jwt,
+            data:{
+                content:{
+                    text:userText,
+                },
+                author:props.user.id,
+                room:0,
+            },
+        }))
         setUserText("");
     }
 
@@ -70,4 +113,7 @@ export default function ChatScreen(props) {
 ChatScreen.propTypes = {
     activeRoom: PropTypes.any.isRequired,
     setActiveRoom: PropTypes.any.isRequired,
+    user:PropTypes.any.isRequired,
+    jwt:PropTypes.any.isRequired,
+    backendIP:PropTypes.any.isRequired,
 };

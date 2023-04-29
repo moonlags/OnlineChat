@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"net"
 	"net/http"
+
+	"nhooyr.io/websocket"
 )
 
 type Room struct {
@@ -62,8 +63,8 @@ func (action *CreateRoom) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *CreateRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	(*db).AddRoom(action, conn, w, req)
+func (action *CreateRoom) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	(*db).AddRoom(action, w, c, req)
 }
 
 func (r Room) Update() DefinedAction {
@@ -78,8 +79,8 @@ func (action *UpdateRoom) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *UpdateRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	(*db).UpdateRoom(action, conn, w, req)
+func (action *UpdateRoom) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	(*db).UpdateRoom(action, w, c, req)
 }
 
 func (r Room) Read() DefinedAction {
@@ -94,8 +95,8 @@ func (action *ReadRoom) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *ReadRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	(*db).ReadRoom(action, conn, w, req)
+func (action *ReadRoom) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	(*db).ReadRoom(action, w, c, req)
 }
 
 func (r Room) Delete() DefinedAction {
@@ -110,8 +111,8 @@ func (action *DeleteRoom) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *DeleteRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	(*db).DeleteRoom(action, conn, w, req)
+func (action *DeleteRoom) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	(*db).DeleteRoom(action, w, c, req)
 }
 
 func (r Room) Print() {
@@ -127,7 +128,7 @@ func (r Room) Login() DefinedAction {
 
 func (action *LoginRoom) GetFromJSON(data []byte) {}
 
-func (action *LoginRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+func (action *LoginRoom) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
 	fmt.Println("Room cant Login")
 }
 func (r Room) Logout() DefinedAction {
@@ -136,6 +137,6 @@ func (r Room) Logout() DefinedAction {
 
 func (action *LogoutRoom) GetFromJSON(data []byte) {}
 
-func (action *LogoutRoom) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
+func (action *LogoutRoom) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
 	fmt.Println("Room cant Logout")
 }

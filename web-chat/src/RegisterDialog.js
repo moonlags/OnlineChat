@@ -21,6 +21,30 @@ export default function RegisterDialog(props) {
 	const [password, setPassword] = React.useState("");
     const [email,setEmail] = React.useState("");
 
+	const ws=React.useRef(null);
+
+    React.useEffect(()=>{
+        ws.current=new WebSocket(props.backendIP);
+        ws.current.onopen=()=>console.log("ws opened")
+        ws.current.onclose=()=>console.log("ws closed")
+
+        const wsCurrent =ws.current;
+
+        return ()=>{
+            wsCurrent.close();
+        };
+    },[]);
+
+    React.useEffect(()=>{
+        if(!ws.current)return;
+
+        ws.current.onmessage=e=>{
+            const message=JSON.parse(e.data);
+            receiveMessage(message);
+            console.log("e",message);
+        };
+    },[]);
+
     function emailChange(event){
         setEmail(event.target.value)
     };
@@ -39,49 +63,25 @@ export default function RegisterDialog(props) {
 		setOpen(false);
 	};
 
+	function receiveMessage(message){
+		if (message.success&&message.status===""){
+			props.setUser(message.obj)
+			props.setjwt(message.jwt)
+		}else{
+			alert(message.status)
+		}
+	}
 
 	function handleReg() {
-		let actn = {
-			Action: "create",
-			Object: "user",
-			Data: {
-				Name: login,
-                Email: email,
-				Password: password,
-			},
-		}
-
-		//place for fetch: action create user
-		fetch(props.backendIP.concat("/"), {
-			method: 'POST', 
-			mode: 'cors', 
-			cache: 'no-cache', 
-			credentials: 'same-origin', 
-			headers: {
-			  	'Content-Type': 'application/json'
-			},
-			redirect: 'follow', 
-			referrerPolicy: 'no-referrer', 
-			body: JSON.stringify(actn),
-		}).then(resp => {
-			if (!resp.ok) {
-				alert("Error occured during register");
-			}
-            props.setjwt(resp.headers.get('Jwt'))
-			console.log(resp.headers.get("Jwt"))
-			return resp.json()
-		}).then(data => {
-			//The place where you read json data from server
-
-			console.log(data);
-			if (data.success === false){
-				props.setjwt("")
-				alert(data.status)
-			}else{
-				props.setUser(data.obj)
-				setOpen(false);
-			}
-		});
+        ws.current.send(JSON.stringify({
+            action:"create",
+            object:"user",
+            data:{
+				Name:login,
+				Email:email,
+				Password:password,
+            },
+        }))
 	}
 	if (props.jwt===""&&props.user.id===0){
 		return (

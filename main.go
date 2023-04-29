@@ -1,15 +1,15 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"nhooyr.io/websocket"
 )
 
 const (
@@ -27,11 +27,13 @@ const (
 type Action struct {
 	Action  string `json:"action"`
 	ObjName string `json:"object"`
+	UserID  uint64 `json:"userid"`
+	Jwt     string `json:"jwt"`
 }
 
 type DefinedAction interface {
 	GetFromJSON([]byte)
-	Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request)
+	Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request)
 }
 
 type GeneralObject interface { // room message user
@@ -117,67 +119,30 @@ func main() {
 		db.Rooms = append(db.Rooms, data)
 	}
 
-	go httphandle()
-	ln, err := net.Listen("tcp", ":8888")
+	http.HandleFunc("/ws", HandlerWS)
+
+	err = http.ListenAndServe(":8080", nil)
+	panic(err)
+}
+
+func HandlerWS(w http.ResponseWriter, req *http.Request) {
+	c, err := websocket.Accept(w, req, &websocket.AcceptOptions{
+		OriginPatterns: []string{"localhost:3000"},
+	})
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("Accepted connection from", conn.RemoteAddr())
-		go handleConnection(conn)
-	}
+	defer c.Close(websocket.StatusInternalError, "")
 
-}
-func handleConnection(conn net.Conn) {
-	buf := make([]byte, 1000)
-	for {
-		n, err := conn.Read(buf)
-		if err != nil {
-			conn.Close()
-			break
-		}
-		db.UseAction(buf[:n], conn, nil, nil)
-		fmt.Println("\nDB after action:")
-		for _, p := range db.Users {
-			p.Print()
-		}
-		fmt.Println()
-	}
-}
+	ctx := context.Background()
+	fmt.Println("websocket accepted")
 
-func Handler(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Origin, Accept, X-Requested-With, jwt, Jwt, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, X-Auth-Token")
-	if req.Method == "POST" {
-		data, err := io.ReadAll(req.Body)
-		req.Body.Close()
+	for {
+		msgType, data, err := c.Read(ctx)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("Got Connection")
-		db.UseAction(data, nil, w, req)
-		fmt.Println()
+		fmt.Printf("MsgType: %d, Data: %s\n", msgType, string(data))
+		db.UseAction(data, w, c, req)
 	}
-	if req.Method == "OPTIONS" {
-		fmt.Println("Got OPTIONS with header: ")
-		for key, value := range req.Header {
-			fmt.Println(key, value)
-		}
-		w.WriteHeader(204)
-	}
-}
-
-func httphandle() {
-	http.HandleFunc("/", Handler)
-	err := http.ListenAndServe(":8080", nil)
-	panic(err)
 }

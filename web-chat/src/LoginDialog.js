@@ -19,6 +19,29 @@ export default function LoginDialog(props) {
 	const [open, setOpen] = React.useState(false);
 	const [login, setLogin] = React.useState("");
 	const [password, setPassword] = React.useState("");
+    const ws=React.useRef(null);
+
+    React.useEffect(()=>{
+        ws.current=new WebSocket(props.backendIP);
+        ws.current.onopen=()=>console.log("ws opened")
+        ws.current.onclose=()=>console.log("ws closed")
+
+        const wsCurrent =ws.current;
+
+        return ()=>{
+            wsCurrent.close();
+        };
+    },[]);
+
+    React.useEffect(()=>{
+        if(!ws.current)return;
+
+        ws.current.onmessage=e=>{
+            const message=JSON.parse(e.data);
+            receiveMessage(message);
+            console.log("e",message);
+        };
+    },[]);
 
 	function loginChange(event) {
 		setLogin(event.target.value);
@@ -35,51 +58,25 @@ export default function LoginDialog(props) {
 		setOpen(false);
 	};
 	
-
+	function receiveMessage(message){
+		if (message.success&&message.status===""){
+			props.setUser(message.obj)
+			props.setjwt(message.jwt)
+			handleClose()
+		}else{
+			alert(message.status)
+		}
+	}
 
 	function handleLogin() {
-		let actn = {
-			Action: "login",
-			Object: "user",
-			Data: {
-				Email: login,
-				Password: password,
-			},
-		}
-
-		//place for fetch: action login user
-		fetch(props.backendIP.concat("/"), {
-			method: 'POST', 
-			mode: 'cors', 
-			cache: 'no-cache', 
-			credentials: 'same-origin', 
-			headers: {
-			  	'Content-Type': 'application/json'
-			},
-			redirect: 'follow', 
-			referrerPolicy: 'no-referrer', 
-			body: JSON.stringify(actn),
-		}).then(resp => {
-			//The place where you should check if request was successfull and read info about response like headers
-			if (!resp.ok) {
-				alert("Error occured during login");
-			}
-			props.setjwt(resp.headers.get("Jwt"))
-			console.log(resp.headers.get("Jwt"))
-			return resp.json()
-		}).then(data => {
-			//The place where you read json data from server
-
-			console.log(data);
-			if (data.success === false){
-				alert(data.status)
-				props.setjwt("")
-			}else{
-				console.log(data);
-				props.setUser(data.obj);
-				setOpen(false);
-			}
-		});
+        ws.current.send(JSON.stringify({
+            action:"login",
+            object:"user",
+            data:{
+				email:login,
+				password:password,
+            },
+        }))
 	}
 	if (props.jwt===""&&props.user.id===0){
 		return (

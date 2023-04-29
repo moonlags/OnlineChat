@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"net"
 	"net/http"
+
+	"nhooyr.io/websocket"
 )
 
 type User struct {
@@ -63,8 +64,8 @@ func (action *CreateUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *CreateUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	db.AddUser(action, conn, w, req)
+func (action *CreateUser) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	db.AddUser(action, w, c, req)
 }
 
 func (u User) Update() DefinedAction {
@@ -79,8 +80,8 @@ func (action *UpdateUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *UpdateUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	db.UpdateUser(action, conn, w, req)
+func (action *UpdateUser) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	db.UpdateUser(action, w, c, req)
 }
 
 func (u User) Read() DefinedAction {
@@ -95,8 +96,8 @@ func (action *ReadUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *ReadUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	db.ReadUser(action, conn, w, req)
+func (action *ReadUser) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	db.ReadUser(action, w, c, req)
 }
 
 func (u User) Delete() DefinedAction {
@@ -111,8 +112,8 @@ func (action *DeleteUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *DeleteUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	db.DeleteUser(action, conn, w, req)
+func (action *DeleteUser) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	db.DeleteUser(action, w, c, req)
 }
 
 func (u User) Print() {
@@ -134,8 +135,8 @@ func (action *LoginUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *LoginUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	db.LoginUser(action, conn, w, req)
+func (action *LoginUser) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	db.LoginUser(action, w, c, req)
 }
 
 func (u User) Logout() DefinedAction {
@@ -150,6 +151,6 @@ func (action *LogoutUser) GetFromJSON(data []byte) {
 	}
 }
 
-func (action *LogoutUser) Process(db *DB, conn net.Conn, w http.ResponseWriter, req *http.Request) {
-	db.LogoutUser(action, conn, w, req)
+func (action *LogoutUser) Process(db *DB, w http.ResponseWriter, c *websocket.Conn, req *http.Request) {
+	db.LogoutUser(action, w, c, req)
 }
