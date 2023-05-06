@@ -47,13 +47,15 @@ export default function LogoutDialog(props) {
         ws.current.send(JSON.stringify({
             action:"logout",
             object:"user",
+            jwt:props.jwt,
+            userid:props.user.id,
             data:{
 				ID:props.user.id
             },
         }))
 		console.log(props.jwt)
 	}
-	if (props.jwt!==""&&props.user.id!==0){
+	if (props.jwt!="" && props.user.id!=0){
 		return (
 			<>
 				<Button variant="standard" onClick={handleLogout}>

@@ -67,6 +67,9 @@ export default function RegisterDialog(props) {
 		if (message.success&&message.status===""){
 			props.setUser(message.obj)
 			props.setjwt(message.jwt)
+			props.user.Rooms=new Map()
+			console.log(props.user)
+			console.log(props.jwt)
 		}else{
 			alert(message.status)
 		}

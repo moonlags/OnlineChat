@@ -16,6 +16,8 @@ import ChatScreen from './Chat/ChatScreen';
 import LoginDialog from './LoginDialog';
 import RegisterDialog from './RegisterDialog';
 import LogoutDialog from './LogoutDialog';
+import RoomCreateDialog from './RoomCreateDialog';
+import { Button } from '@mui/material';
 
 const drawerWidth = 240;
 const backendIP = "ws://localhost:8080/ws"
@@ -89,9 +91,56 @@ export default function MainScreen() {
     const [activeRoom, setActiveRoom] = React.useState(emptyRoom);
     const [jwt,setjwt]=React.useState("");
     const [user,setUser]=React.useState({Attribute:0,Name:"", Email:"",Password:"", id:0, Rooms:new Map(),})
+    const ws=React.useRef(null);
+
+    React.useEffect(()=>{
+        ws.current=new WebSocket(backendIP);
+        ws.current.onopen=()=>console.log("ws opened")
+        ws.current.onclose=()=>console.log("ws closed")
+
+        const wsCurrent =ws.current;
+
+        return ()=>{
+            wsCurrent.close();
+        };
+    },[]);
+
+    React.useEffect(()=>{
+        if(!ws.current)return;
+
+        ws.current.onmessage=e=>{
+            const message=JSON.parse(e.data);
+            receiveMessage(message);
+            console.log("e",message);
+        };
+    },[]);
+
+    function receiveMessage(message){
+		if (message.success&&message.status===""){
+            RoomList+=message.obj
+		}else{
+			alert(message.status)
+		}
+	}
 
     function updateRoomList() {
-        setRoomList([testRoom, testRoom2, testRoom3]);
+        console.log(user.Rooms)
+        if (jwt!=="" && user.id!==0&&user.Rooms){
+            console.log("Refresh")
+            for (let [key,value] of user.Rooms){
+                    ws.current.send(JSON.stringify({
+                        action:"read",
+                        object:"room",
+                        jwt:jwt,
+                        userid:user.id,
+                        data:{
+                            ID:key
+                        },
+                    }))
+
+            }
+        }
+        //setRoomList([testRoom, testRoom2, testRoom3]);
         //place for fetch: action read room 
         //...
     }
@@ -126,6 +175,8 @@ export default function MainScreen() {
                 >
                     <Toolbar />
                     <RoomList activeRoom={activeRoom} setActiveRoom={setActiveRoom} roomList={roomList}/>
+                    <Button onClick={updateRoomList}>Refresh</Button>
+                    <RoomCreateDialog setUser={setUser} user={user} jwt={jwt} setjwt={setjwt} backendIP={backendIP}/>
                 </Drawer>
 
                 {/*This is the window with the chat*/}

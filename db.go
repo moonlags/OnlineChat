@@ -2,15 +2,11 @@ package main
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
-	"strings"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
@@ -26,7 +22,7 @@ type Output struct {
 	Obj     GeneralObject `json:"obj"`
 }
 
-var privkey, _ = rsa.GenerateKey(rand.Reader, 256)
+var privkey = rand.Intn(999999999999)
 var hmacs = make(map[uint64]string)
 
 var FreeId uint64 = 1
@@ -35,13 +31,6 @@ type DB struct {
 	datab *sql.DB
 	Users []User
 	Rooms []Room
-}
-
-type Claims struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	jwt.RegisteredClaims
 }
 
 func (db *DB) FindIndexUser(id uint64) int {
@@ -101,26 +90,16 @@ func (db *DB) UseAction(text []byte, w http.ResponseWriter, c *websocket.Conn, r
 		fmt.Println("unknown action", act.Action)
 		return
 	}
-	if act.ObjName != "user" && act.Action != "login" && act.Action != "create" {
+	if act.ObjName != "user" || act.Action != "login" && act.Action != "create" {
 		fmt.Println(act.Jwt)
-		res := strings.Split(act.Jwt, ".")
-		if len(res) != 3 {
-			fmt.Println("not hmac")
-			return
-		}
-		h := hmac.New(sha256.New, []byte(fmt.Sprint(privkey)))
-		h.Write([]byte(res[0] + "." + res[1]))
-		if !hmac.Equal(h.Sum(nil), []byte(hmacs[act.UserID])) {
-			fmt.Println("Invalid hmac!", h.Sum(nil))
-			return
-		}
-		token, err := jwt.ParseWithClaims(act.Jwt, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-			return []byte("AllYourBase"), nil
+		token, err := jwt.Parse(act.Jwt, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(fmt.Sprint(privkey)), nil
 		})
-		user := db.Users[db.FindIndexUser(act.UserID)]
-		if claims, ok := token.Claims.(*Claims); ok && token.Valid && (user.Name != claims.Name || user.Email != claims.Email || user.Password != claims.Password) {
-			fmt.Println("Invalid hmac!", claims.Name, claims.Email, claims.Password)
-			return
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			fmt.Println(claims["name"], claims["email"], claims["password"])
 		} else {
 			fmt.Println(err)
 		}
@@ -135,7 +114,6 @@ func (db *DB) AddRoom(action *CreateRoom, w http.ResponseWriter, c *websocket.Co
 	action.R.ID = FreeId
 	FreeId++
 	db.Rooms = append(db.Rooms, action.R)
-	var i uint64
 	for i := range action.R.Users {
 		db.Users[db.FindIndexUser(i)].Rooms[action.R.ID] = true
 	}
@@ -152,7 +130,8 @@ func (db *DB) AddRoom(action *CreateRoom, w http.ResponseWriter, c *websocket.Co
 	}
 
 	//-----------------------------------NOT DONE!-------------------------------------------
-	q := `INSERT INTO rooms (Attribute,Name,Messages,ID,Users) VALUES (?,?,?,?,?);UPDATE users SET Rooms=? WHERE ID=?`
+	q := `INSERT INTO rooms (Attribute,Name,Messages,ID,Users) VALUES (?,?,?,?,?)`
+	q2 := `UPDATE users SET Rooms=? WHERE ID=?`
 
 	temp := db.Rooms[db.FindIndexRoom(action.R.ID)]
 	text, err = json.Marshal(temp.Messages)
@@ -164,13 +143,18 @@ func (db *DB) AddRoom(action *CreateRoom, w http.ResponseWriter, c *websocket.Co
 		panic(err)
 	}
 	var text3 []byte
+	var i uint64
 	for i = range action.R.Users {
 		text3, err = json.Marshal(db.Users[db.FindIndexUser(i)].Rooms)
 		if err != nil {
 			panic(err)
 		}
 	}
-	_, err = db.datab.Query(q, temp.Attribute, temp.Name, text, temp.ID, text2, text3, i)
+	_, err = db.datab.Query(q, temp.Attribute, temp.Name, text, temp.ID, text2)
+	if err != nil {
+		panic(err)
+	}
+	_, err = db.datab.Query(q2, text3, i)
 	if err != nil {
 		panic(err)
 	}
@@ -347,12 +331,7 @@ func (db *DB) AddUser(action *CreateUser, w http.ResponseWriter, c *websocket.Co
 	action.U.Password = hash
 	db.Users = append(db.Users, action.U)
 	db.Users[db.FindIndexUser(action.U.ID)].Rooms = make(map[uint64]bool)
-	data.Action, data.Object, data.Success, data.Status, data.Jwt, data.Obj = "create", "user", true, "", hmacs[action.U.ID], db.Users[db.FindIndexUser(action.U.ID)]
-	text, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"name":     action.U.Name,
 		"email":    action.U.Email,
@@ -360,12 +339,17 @@ func (db *DB) AddUser(action *CreateUser, w http.ResponseWriter, c *websocket.Co
 	})
 	tokenString, err := token.SignedString([]byte(fmt.Sprint(privkey)))
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
-	i := strings.Split(tokenString, ".")
-	hmacs[action.U.ID] = i[len(i)-1]
-	w.Header().Set("jwt", tokenString)
+	fmt.Println(tokenString)
+	hmacs[action.U.ID] = tokenString
+
+	data.Action, data.Object, data.Success, data.Status, data.Jwt, data.Obj = "create", "user", true, "", hmacs[action.U.ID], db.Users[db.FindIndexUser(action.U.ID)]
+	text, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+
 	ctx := context.Background()
 	err = c.Write(ctx, 1, text)
 	if err != nil {
@@ -403,25 +387,24 @@ func (db *DB) LoginUser(action *LoginUser, w http.ResponseWriter, c *websocket.C
 			panic(err)
 		}
 		if u.Email == action.Data.Email && match {
-			data.Action, data.Object, data.Success, data.Status, data.Jwt, data.Obj = "login", "user", true, "", hmacs[u.ID], db.Users[db.FindIndexUser(u.ID)]
-			text, err := json.Marshal(data)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
 
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 				"name":     u.Name,
 				"email":    u.Email,
 				"password": u.Password,
 			})
-			tokenString, err := token.SignedString(privkey)
+			tokenString, err := token.SignedString([]byte(fmt.Sprint(privkey)))
 			if err != nil {
-				fmt.Println(err)
-				return
+				panic(err)
 			}
-			i := strings.Split(tokenString, ".")
-			hmacs[u.ID] = i[len(i)-1]
+			hmacs[u.ID] = tokenString
+
+			data.Action, data.Object, data.Success, data.Status, data.Jwt, data.Obj = "login", "user", true, "", hmacs[u.ID], db.Users[db.FindIndexUser(u.ID)]
+			text, err := json.Marshal(data)
+			if err != nil {
+				panic(err)
+			}
+
 			ctx := context.Background()
 			err = c.Write(ctx, 1, text)
 			if err != nil {
@@ -433,8 +416,7 @@ func (db *DB) LoginUser(action *LoginUser, w http.ResponseWriter, c *websocket.C
 	data.Action, data.Object, data.Success, data.Status = "login", "user", false, "User not found!"
 	text, err := json.Marshal(data)
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
 
 	ctx := context.Background()

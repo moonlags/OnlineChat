@@ -15,10 +15,9 @@ import PropTypes from 'prop-types';
 
 //Local imports
 
-export default function LoginDialog(props) {
+export default function RoomCreateDialog(props) {
 	const [open, setOpen] = React.useState(false);
-	const [login, setLogin] = React.useState("");
-	const [password, setPassword] = React.useState("");
+	const [roomName, setRoomName] = React.useState("");
     const ws=React.useRef(null);
 
     React.useEffect(()=>{
@@ -43,11 +42,8 @@ export default function LoginDialog(props) {
         };
     },[]);
 
-	function loginChange(event) {
-		setLogin(event.target.value);
-	};
-	function passwordChange(event) {
-		setPassword(event.target.value);
+	function RoomNameChange(event) {
+		setRoomName(event.target.value);
 	};
 
 	function handleClickOpen() {
@@ -60,69 +56,59 @@ export default function LoginDialog(props) {
 	
 	function receiveMessage(message){
 		if (message.success&&message.status===""){
-			props.setUser(message.obj)
-			if (message.obj.Rooms==null){
-				props.user.Rooms=new Map()
-			}
-			props.setjwt(message.jwt)
-			handleClose()
+            (props.user.Rooms).set(message.obj.id,true)
+			handleClose();
 		}else{
 			alert(message.status)
 		}
 	}
 
-	function handleLogin() {
+	function handleRoomCreate() {
+        let users=new Map()
+        users.set(props.user.id,0)
+        console.log(JSON.stringify(users))
         ws.current.send(JSON.stringify({
-            action:"login",
-            object:"user",
+            action:"create",
+            object:"room",
+            jwt:props.jwt,
+            userid:props.user.id,
             data:{
-				email:login,
-				password:password,
+                Name:roomName,
+                Users:users,
             },
         }))
 	}
-	if (props.jwt===""&&props.user.id===0){
-		return (
-			<>
-				<Button variant="standard" onClick={handleClickOpen}>
-					Login
-				</Button>
-				<Dialog open={open} onClose={handleClose}>
-					<DialogTitle>Login</DialogTitle>
+	return (
+		<>
+			<Button variant="standard" onClick={handleClickOpen}>
+				Create Room
+			</Button>
+			<Dialog open={open} onClose={handleClose}>
+				<DialogTitle>Create Room</DialogTitle>
 					<DialogContent>
-						<DialogContentText>
-							Enter your credentials
-						</DialogContentText>
-						<TextField
+					    <DialogContentText>
+						    Enter room name
+					    </DialogContentText>
+					    <TextField
 							autoFocus
 							margin="dense"
-							label="Email address"
-							type="email"
+							label="Room name"
+							type="text"
 							fullWidth
 							variant="standard"
-							value={login}
-							onChange={loginChange}
-						/>
-						<TextField
-							margin="dense"
-							label="Password"
-							type="password"
-							fullWidth
-							variant="standard"
-							value={password}
-							onChange={passwordChange}
+							value={roomName}
+							onChange={RoomNameChange}
 						/>
 					</DialogContent>
 					<DialogActions>
-						<Button onClick={handleLogin}>Login</Button>
+						<Button onClick={handleRoomCreate}>Create Room</Button>
 					</DialogActions>
 				</Dialog>
 			</>
 		);
 	}
-}
 
-LoginDialog.propTypes = {
+RoomCreateDialog.propTypes = {
     backendIP: PropTypes.any.isRequired,
 	jwt: PropTypes.any.isRequired,
 	setjwt: PropTypes.any.isRequired,
